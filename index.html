@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Pelanggan WiFi</title>
+    <!-- Firebase App Setup -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database-compat.js"></script>
+    <style>
+        /* Hamburger menu styles */
+        .hamburger {
+            cursor: pointer;
+            padding: 10px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .hamburger-line {
+            width: 25px;
+            height: 3px;
+            background-color: #333;
+            margin: 5px 0;
+        }
+        .admin-panel {
+            display: none;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .show {
+            display: block;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .wifi-icon {
+            font-size: 40px;
+            margin-right: 15px;
+            color: #3498db;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .paid {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .unpaid {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            flex-grow: 1;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .pay-button {
+            background-color: #27ae60;
+            color: white;
+        }
+        .pay-button:hover {
+            background-color: #219653;
+        }
+        .reset-button {
+            background-color: #e74c3c;
+            color: white;
+            margin-left: 10px;
+        }
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+        .add-button {
+            background-color: #3498db;
+            color: white;
+        }
+        .add-button:hover {
+            background-color: #2980b9;
+        }
+        .set-price-button {
+            background-color: #9b59b6;
+            color: white;
+        }
+        .set-price-button:hover {
+            background-color: #8e44ad;
+        }
+        .customer-input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .summary p {
+            margin: 5px 0;
+        }
+        .total-received {
+            font-weight: bold;
+            color: #27ae60;
+            font-size: 18px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hamburger" onclick="toggleAdminPanel()">
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+    </div>
+    
+    <div class="header">
+            <div class="wifi-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                    <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                </svg>
+            </div>
+            <h1>Daftar Pelanggan WiFi</h1>
+        </div>
+        
+        <div class="admin-panel" id="adminPanel">
+            <div class="form-group">
+                <input type="text" id="newCustomerName" placeholder="Nama Pelanggan Baru" class="customer-input">
+                <input type="number" id="newCustomerPrice" placeholder="Jumlah Tagihan" class="customer-input">
+                <button class="add-button" onclick="addCustomer()">Tambah Pelanggan</button>
+            </div>
+            <div class="form-group">
+                <select id="priceCustomer">
+                    <option value="">-- Pilih Pelanggan --</option>
+                    <!-- Options will be populated by JS -->
+                </select>
+                <input type="number" id="newPrice" placeholder="Harga Baru">
+                <button class="set-price-button" onclick="updatePrice()">Set Harga</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <select id="customer">
+                <option value="">-- Pilih Pelanggan --</option>
+                <option value="Tgk Ahyar">Tgk Ahyar</option>
+                <option value="Tgk Arief Fazillah">Tgk Arief Fazillah</option>
+                <option value="Tgk Atim">Tgk Atim</option>
+                <option value="Tgk Bahgia">Tgk Bahgia</option>
+                <option value="Tgk Dhiaul">Tgk Dhiaul</option>
+                <option value="Tgk Dzikri Arrahman">Tgk Dzikri Arrahman</option>
+                <option value="Tgk Edi Samsuar">Tgk Edi Samsuar</option>
+                <option value="Tgk Fauzi">Tgk Fauzi</option>
+                <option value="Tgk Haikal">Tgk Haikal</option>
+                <option value="Tgk Hendra">Tgk Hendra</option>
+                <option value="Tgk Munazir">Tgk Munazir</option>
+                <option value="Tgk Raja Munandar">Tgk Raja Munandar</option>
+                <option value="Tgk Zawil">Tgk Zawil</option>
+                <option value="Tgk Ikbal Luriansyah">Tgk Ikbal Luriansyah</option>
+            </select>
+            <button class="pay-button" onclick="markAsPaid()">Sudah Bayar</button>
+            <button class="reset-button" onclick="resetPayments()">Reset Semua</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Nama Pelanggan</th>
+                    <th>Status Pembayaran</th>
+                    <th>Tagihan (Rupiah)</th>
+                </tr>
+            </thead>
+            <tbody id="customerTable">
+                <tr>
+                    <td>Tgk Ahyar</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>15,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Arief Fazillah</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Atim</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Bahgia</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Dhiaul</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Dzikri Arrahman</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Edi Samsuar</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Fauzi</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Haikal</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Hendra</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Munazir</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>15,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Raja Munandar</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Zawil</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+                <tr>
+                    <td>Tgk Ikbal Luriansyah</td>
+                    <td class="unpaid">Belum Bayar</td>
+                    <td>33,000</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="summary">
+            <p>Total Uang Diterima: <span class="total-received" id="totalReceived">0</span> Rupiah</p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Toggle admin panel
+        function toggleAdminPanel() {
+            document.getElementById('adminPanel').classList.toggle('show');
+        }
+
+        // Add new customer
+        function addCustomer() {
+            const name = document.getElementById('newCustomerName').value;
+            const price = document.getElementById('newCustomerPrice').value;
+            
+            if (!name || !price) {
+                alert('Harap isi nama dan harga pelanggan');
+                return;
+            }
+
+            // Add to dropdown
+            const customerSelect = document.getElementById('customer');
+            const newOption = document.createElement('option');
+            newOption.value = name;
+            newOption.textContent = name;
+            customerSelect.appendChild(newOption);
+
+            // Add to price dropdown
+            const priceSelect = document.getElementById('priceCustomer');
+            const newPriceOption = document.createElement('option');
+            newPriceOption.value = name;
+            newPriceOption.textContent = name;
+            priceSelect.appendChild(newPriceOption);
+
+            // Add to table
+            const tbody = document.getElementById('customerTable');
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${name}</td>
+                <td class="unpaid">Belum Bayar</td>
+                <td>${parseInt(price).toLocaleString()}</td>
+            `;
+
+            // Clear inputs
+            document.getElementById('newCustomerName').value = '';
+            document.getElementById('newCustomerPrice').value = '';
+        }
+
+        // Update price
+        function updatePrice() {
+            const customer = document.getElementById('priceCustomer').value;
+            const newPrice = document.getElementById('newPrice').value;
+            
+            if (!customer || !newPrice) {
+                alert('Harap pilih pelanggan dan isi harga baru');
+                return;
+            }
+
+            const rows = document.querySelectorAll('#customerTable tr');
+            rows.forEach(row => {
+                if (row.cells[0].textContent === customer) {
+                    row.cells[2].textContent = parseInt(newPrice).toLocaleString();
+                    // Update price in Firebase
+                    database.ref('customers/' + customer + '/price').set(parseInt(newPrice));
+                }
+            });
+            
+            document.getElementById('newPrice').value = '';
+        }
+
+        // Load payment status from localStorage or initialize
+        let paymentStatus = JSON.parse(localStorage.getItem('paymentStatus')) || {};
+        let totalReceived = parseInt(localStorage.getItem('totalReceived')) || 0;
+
+        // Initialize and sync from Firebase
+        document.addEventListener('DOMContentLoaded', function() {
+            // Listen for changes in payments status
+            database.ref('payments').on('value', (snapshot) => {
+                paymentStatus = snapshot.val() || {};
+                updatePaymentDisplay();
+            });
+            
+            // Listen for changes in total received
+            database.ref('totalReceived').on('value', (snapshot) => {
+                totalReceived = snapshot.val() || 0;
+                document.getElementById('totalReceived').textContent = totalReceived.toLocaleString();
+            });
+        });
+
+        function updatePaymentDisplay() {
+            const rows = document.querySelectorAll('#customerTable tr');
+            rows.forEach(row => {
+                const nameCell = row.cells[0].textContent;
+                const statusCell = row.cells[1];
+                
+                if (paymentStatus[nameCell] === 'paid') {
+                    statusCell.classList.remove('unpaid');
+                    statusCell.classList.add('paid');
+                    statusCell.textContent = 'Sudah Bayar';
+                }
+            });
+            
+            document.getElementById('totalReceived').textContent = totalReceived.toLocaleString();
+        });
+
+        function markAsPaid() {
+            const customer = document.getElementById('customer').value;
+            if (!customer) {
+                alert('Silakan pilih pelanggan terlebih dahulu');
+                return;
+            }
+
+            const rows = document.querySelectorAll('#customerTable tr');
+            let customerFound = false;
+            
+            rows.forEach(row => {
+                const nameCell = row.cells[0].textContent;
+                const statusCell = row.cells[1];
+                const amountCell = row.cells[2].textContent.replace(/,/g, '');
+                
+                if (nameCell === customer && statusCell.classList.contains('unpaid')) {
+                    statusCell.classList.remove('unpaid');
+                    statusCell.classList.add('paid');
+                    statusCell.textContent = 'Sudah Bayar';
+                    totalReceived += parseInt(amountCell);
+                    paymentStatus[nameCell] = 'paid';
+                    // Save to Firebase
+                    database.ref('payments').set(paymentStatus);
+                    database.ref('totalReceived').set(totalReceived);
+                    customerFound = true;
+                }
+            });
+
+            if (customerFound) {
+                document.getElementById('totalReceived').textContent = totalReceived.toLocaleString();
+                document.getElementById('customer').selectedIndex = 0; // Reset dropdown
+            } else if (customer) {
+                alert('Pelanggan ini sudah membayar sebelumnya atau tidak ditemukan');
+            }
+        }
+
+        function resetPayments() {
+            if (confirm('Apakah Anda yakin ingin mereset semua pembayaran?')) {
+                paymentStatus = {};
+                totalReceived = 0;
+                localStorage.removeItem('paymentStatus');
+                localStorage.removeItem('totalReceived');
+                
+                const rows = document.querySelectorAll('#customerTable tr');
+                rows.forEach(row => {
+                    const statusCell = row.cells[1];
+                    statusCell.classList.remove('paid');
+                    statusCell.classList.add('unpaid');
+                    statusCell.textContent = 'Belum Bayar';
+                });
+                
+                document.getElementById('totalReceived').textContent = '0';
+            }
+        }
+    </script>
+    <footer>
+        Dayah Madinatuddiniyah Babussalam | Pemilik: Edi Samsuar
+    </footer>
+</body>
+</html>
